@@ -12,9 +12,9 @@ function CreateAccount() {
 
         try {
             const res = await axios.post(`${url}/create`, { email });
-            console.log(res.data.message);
+            setMessages(res.data.message);
 
-            setMessages(`Your Password is :${res.data.message}`);
+            // setMessages(res.data.message);
         } catch (error) {
             console.error("Error sending email:", error);
             setMessages("An error occurred while sending the email.");
@@ -34,7 +34,7 @@ function CreateAccount() {
                     required
                     style={{ marginBottom: '10px', padding: '8px', borderRadius: '5px', border: '1px solid #ccc' }}
                 />
-                <button type="submit" style={{ backgroundColor: '#4caf50', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Send Email</button>
+                <button type="submit" style={{ backgroundColor: '#4caf50', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Register</button>
             </form>
             {messages && <div style={{ marginTop: '10px' }}>{messages}</div>}
         </div>

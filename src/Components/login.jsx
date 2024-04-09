@@ -8,13 +8,14 @@ const Login = () => {
         password: "",
     });
     const auth = useAuth();
+    const [message, setMessage] = useState("");
 
     const handleSubmitEvent = async (e) => {
         e.preventDefault();
         try {
-            await auth.loginAction(input);
+            const res = await auth.loginAction(input);
+            setMessage(res.data.error);
         } catch (error) {
-            alert(error.message); // Display error message if login fails
         }
     };
 
@@ -55,8 +56,8 @@ const Login = () => {
                     </div>
                     <button type="submit" className="btnsubmit" style={{ backgroundColor: '#4caf50', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px' }}>Submit</button>
                 </form>
-
             </div>
+            {message && <div>{message}</div>}
             <Link to={`\create`} style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)' }}>Create Account</Link>
         </div>
     );
