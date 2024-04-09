@@ -7,7 +7,7 @@ const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem("site") || "");
     const navigate = useNavigate();
 
-    const url = "http://daldocbs-env-1.eba-i45vxxpr.us-east-1.elasticbeanstalk.com/";
+    const url = "http://daldocbs-env-1.eba-i45vxxpr.us-east-1.elasticbeanstalk.com";
 
     const loginAction = async (data) => {
         try {
