@@ -8,8 +8,7 @@ const AuthProvider = ({ children }) => {
     const navigate = useNavigate();
 
 
-    const url = "http://localhost:2000"
-    // const url = "http://daldocbs-env-1.eba-i45vxxpr.us-east-1.elasticbeanstalk.com";
+     const url = "http://daldocbs-env-1.eba-i45vxxpr.us-east-1.elasticbeanstalk.com";
 
     const loginAction = async (data) => {
         try {
