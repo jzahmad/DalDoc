@@ -12,8 +12,9 @@ import { Button, TextField, Grid } from '@mui/material';
 import Logout from './logout';
 
 export default function DepartmentInfo() {
-    const auth = useAuth();
+    const { auth, url } = useAuth();
     const { department } = useParams();
+
     const navigate = useNavigate();
 
     const [value, setValue] = useState(0);
@@ -21,7 +22,7 @@ export default function DepartmentInfo() {
     const [courses, setCourses] = useState([]);
     const [sendcourse, setSendCourse] = useState("");
     const [sendcode, setSendCode] = useState("");
-    const url = "http://localhost:2000";
+    const [message, setMessage] = useState("")
 
     useEffect(() => {
         const fetchCourses = async () => {
@@ -55,8 +56,17 @@ export default function DepartmentInfo() {
         event.preventDefault();
         console.log('Course Code:', sendcode);
         console.log('Course Name:', sendcourse);
-        setSendCourse("");
-        setSendCode("");
+
+        const send = sendcourse + sendcode;
+
+        try {
+            const response = await axios.post(`${url}/addFac`, { course: send });
+            setMessage(response.data.message);
+            setSendCourse("");
+            setSendCode("");
+        } catch (error) {
+            console.error('Error adding department:', error);
+        }
     };
 
     return (
@@ -96,21 +106,25 @@ export default function DepartmentInfo() {
                             <Grid item xs={6}>
                                 <TextField
                                     className="form-input"
-                                    name="department"
+                                    name="courseName" // Change to courseName
                                     variant="outlined"
                                     fullWidth
                                     placeholder='Course name'
-                                    style={{ backgroundColor: 'white' }} // Add background color style
+                                    value={sendcourse} // Bind value to sendcourse state
+                                    onChange={(e) => setSendCourse(e.target.value)} // Update sendcourse state
+                                    style={{ backgroundColor: 'white' }}
                                 />
                             </Grid>
                             <Grid item xs={6}>
                                 <TextField
                                     className="form-input"
-                                    name="department"
+                                    name="courseCode" // Change to courseCode
                                     variant="outlined"
                                     fullWidth
                                     placeholder='Course Code'
-                                    style={{ backgroundColor: 'white' }} // Add background color style
+                                    value={sendcode} // Bind value to sendcode state
+                                    onChange={(e) => setSendCode(e.target.value)} // Update sendcode state
+                                    style={{ backgroundColor: 'white' }}
                                 />
                             </Grid>
                             <Grid item xs={4}>
@@ -118,6 +132,7 @@ export default function DepartmentInfo() {
                             </Grid>
                         </Grid>
                     </form>
+                    <Typography style={styles.message}>{message}</Typography>
                 </div>
             )}
             {value === 0 && <DiscussionBoard />}
@@ -181,4 +196,9 @@ const styles = {
         cursor: 'pointer',
         fontSize: '16px',
     },
+    message: {
+        marginTop: '20px',
+        color: 'green', 
+        fontWeight: 'bold',
+    }
 };

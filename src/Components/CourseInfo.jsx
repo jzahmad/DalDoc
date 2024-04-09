@@ -12,14 +12,12 @@ import { useAuth } from "./context";
 import Logout from './logout';
 
 export default function CourseInfo() {
-    const auth = useAuth();
+    const { auth, url } = useAuth();
     const Assignmnetsregex = /.*A.*$/;
     const Notesregex = /.*N.*$/;
     const Othersregex = /.*Ot.*$/;
     const Examsregex = /.*E.*$/;
     const Outlinesregex = /.*Ou.*$/;
-
-    const url = "http://localhost:2000";
 
     const { course } = useParams();
     const navigate = useNavigate();

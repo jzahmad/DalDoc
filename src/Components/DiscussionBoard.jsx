@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, Button, TextField, List, ListItem, ListItemText } from '@mui/material';
 import axios from "axios";
+import { useAuth } from "./context";
 
 export default function DiscussionBoard() {
+
+    const { url } = useAuth();
     const { department } = useParams();
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
-    const url = "http://localhost:2000";
 
     useEffect(() => {
         const fetchComments = async () => {

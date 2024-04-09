@@ -5,7 +5,7 @@ import { useAuth } from "./context";
 import Logout from './logout';
 
 export default function Upload() {
-    const auth = useAuth();
+    const { auth, url } = useAuth();
     const [documentType, setDocumentType] = useState('');
     const [type, setType] = useState("");
     const [term, setTerm] = useState('');
@@ -18,7 +18,6 @@ export default function Upload() {
     const [message, setMessage] = useState("");
 
     const { course } = useParams();
-    const url = "http://localhost:2000";
 
     const handleDocumentTypeChange = (event) => {
         setDocumentType(event.target.value);

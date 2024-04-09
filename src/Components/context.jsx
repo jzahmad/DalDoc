@@ -4,11 +4,10 @@ import axios from "axios";
 const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
     const [token, setToken] = useState(localStorage.getItem("site") || "");
     const navigate = useNavigate();
 
-    const url = "http://localhost:2000";
+    const url = "http://daldocbs-env-1.eba-i45vxxpr.us-east-1.elasticbeanstalk.com/";
 
     const loginAction = async (data) => {
         try {
@@ -29,7 +28,7 @@ const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ token, user, loginAction, logOut }}>
+        <AuthContext.Provider value={{ token, loginAction, logOut, url }}>
             {children}
         </AuthContext.Provider>
     );
@@ -41,3 +40,6 @@ export default AuthProvider;
 export const useAuth = () => {
     return useContext(AuthContext);
 };
+
+
+

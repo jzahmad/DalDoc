@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useAuth } from "./context";
 
 function CreateAccount() {
     const [email, setEmail] = useState("");
     const [messages, setMessages] = useState("");
-
-    const url = "http://localhost:2000";
+    const { auth, url } = useAuth();
 
     const handleSubmit = async (event) => {
         event.preventDefault();

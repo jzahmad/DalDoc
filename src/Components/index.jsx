@@ -10,12 +10,11 @@ import { Button, TextField, Grid, Box } from '@mui/material';
 import Logout from './logout';
 
 export default function Index() {
-    const auth = useAuth();
+    const { url } = useAuth();
     const navigate = useNavigate();
     const [departments, setDepartments] = useState([]);
     const [selectedDepartment, setSelectedDepartment] = useState(null);
     const [message, setMessage] = useState("");
-    const url = "http://localhost:2000";
 
     useEffect(() => {
         const fetchDepartments = async () => {
@@ -111,7 +110,7 @@ export default function Index() {
                 </Grid>
             </form>
             <br />
-            {message}
+            <Typography style={{ marginTop: '20px', color: 'green', fontWeight: 'bold' }}>{message}</Typography>
         </div>
     );
 }
