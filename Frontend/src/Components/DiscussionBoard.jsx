@@ -1,39 +1,61 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, Button, TextField, List, ListItem, ListItemText } from '@mui/material';
-import axios from "axios";
+import axios from 'axios';
+import * as signalR from '@microsoft/signalr';
 import { useAuth } from "./context";
 
 export default function DiscussionBoard() {
-
     const { url } = useAuth();
     const { department } = useParams();
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
+    const [connection, setConnection] = useState(null);
 
     useEffect(() => {
-        const fetchComments = async () => {
-            try {
-                const response = await axios.get(`${url}/getComments?department=${department}`);
-                const fetchedComments = response.data.results.map((result) => result.comment);
-                setComments(fetchedComments);
-            } catch (error) {
-                console.error('Failed to fetch comments:', error);
+        // Create and configure the SignalR connection
+        const newConnection = new signalR.HubConnectionBuilder()
+            .withUrl(`${url}/chatHub`)
+            .withAutomaticReconnect()
+            .build();
+
+        newConnection.on('ReceiveComment', (comment) => {
+            setComments(prevComments => [...prevComments, comment]);
+        });
+
+        newConnection.on('LoadChatHistory', (history) => {
+            setComments(history);
+        });
+
+        newConnection.on('ReceiveError', (error) => {
+            console.error('Error:', error);
+        });
+
+        newConnection.start()
+            .then(() => {
+                setConnection(newConnection);
+                // Join the chat room when the connection is established
+                newConnection.invoke('JoinRoom', department)
+                    .catch(err => console.error('Error joining room:', err));
+            })
+            .catch(err => console.error('Connection error:', err));
+
+        return () => {
+            if (connection) {
+                connection.stop();
             }
-        }
-        fetchComments();
-    }, [department, newComment]);
+        };
+    }, [department, url]);
 
     const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (newComment.trim() === '') return;
+
         try {
-            const response = await axios.post(`${url}/comments`, {
-                department: department,
-                comment: newComment
-            });
+            await connection.invoke('SendComment', department, newComment);
             setNewComment('');
-            setComments([...comments, response.data.comment]);
         } catch (error) {
-            console.error('Failed to add new discussion:', error);
+            console.error('Failed to send comment:', error);
         }
     };
 
