@@ -27,8 +27,8 @@ export default function DepartmentInfo() {
     useEffect(() => {
         const fetchCourses = async () => {
             try {
-                const response = await axios.post(`${url}/courses`, { department: department });
-                setCourses(response.data.map(course => course.code));
+                const response = await axios.get(`${url}?department=${encodeURIComponent(department)}`);
+                setCourses(response.data);
             } catch (error) {
                 console.error('Error fetching courses:', error);
             }
