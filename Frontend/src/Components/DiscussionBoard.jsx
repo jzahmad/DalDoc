@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Card, Button, TextField, List, ListItem, ListItemText } from '@mui/material';
-import axios from 'axios';
+import { Card, Button, TextField, List, ListItem, ListItemText, CircularProgress } from '@mui/material';
 import * as signalR from '@microsoft/signalr';
 import { useAuth } from "./context";
 
@@ -11,9 +10,10 @@ export default function DiscussionBoard() {
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
     const [connection, setConnection] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        // Create and configure the SignalR connection
         const newConnection = new signalR.HubConnectionBuilder()
             .withUrl(`${url}/chatHub`)
             .withAutomaticReconnect()
@@ -25,20 +25,27 @@ export default function DiscussionBoard() {
 
         newConnection.on('LoadChatHistory', (history) => {
             setComments(history);
+            setLoading(false); // Stop loading once history is loaded
         });
 
         newConnection.on('ReceiveError', (error) => {
+            setError(error);
             console.error('Error:', error);
         });
 
         newConnection.start()
             .then(() => {
                 setConnection(newConnection);
-                // Join the chat room when the connection is established
                 newConnection.invoke('JoinRoom', department)
-                    .catch(err => console.error('Error joining room:', err));
+                    .catch(err => {
+                        console.error('Error joining room:', err);
+                        setError('Failed to join room');
+                    });
             })
-            .catch(err => console.error('Connection error:', err));
+            .catch(err => {
+                console.error('Connection error:', err);
+                setError('Connection to server failed');
+            });
 
         return () => {
             if (connection) {
@@ -56,21 +63,28 @@ export default function DiscussionBoard() {
             setNewComment('');
         } catch (error) {
             console.error('Failed to send comment:', error);
+            setError('Failed to send comment');
         }
     };
 
     return (
         <div style={styles.discussionBoardContainer}>
             <h2 style={styles.departmentHeading}>{department} Discussion Board</h2>
-            <List style={styles.commentsList}>
-                {comments.map((comment, index) => (
-                    <ListItem key={index} style={styles.commentListItem}>
-                        <Card style={styles.commentCard}>
-                            <ListItemText primary={comment} />
-                        </Card>
-                    </ListItem>
-                ))}
-            </List>
+            {loading ? (
+                <CircularProgress />
+            ) : error ? (
+                <div style={styles.error}>{error}</div>
+            ) : (
+                <List style={styles.commentsList}>
+                    {comments.map((comment, index) => (
+                        <ListItem key={index} style={styles.commentListItem}>
+                            <Card style={styles.commentCard}>
+                                <ListItemText primary={comment} />
+                            </Card>
+                        </ListItem>
+                    ))}
+                </List>
+            )}
             <form onSubmit={handleSubmit} style={styles.commentForm}>
                 <TextField
                     placeholder="Start a discussion"
@@ -120,5 +134,9 @@ const styles = {
     },
     postButton: {
         height: '56px',
+    },
+    error: {
+        color: 'red',
+        marginBottom: '10px',
     },
 };
