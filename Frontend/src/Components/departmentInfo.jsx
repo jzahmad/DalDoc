@@ -12,9 +12,8 @@ import { Button, TextField, Grid } from '@mui/material';
 import Logout from './logout';
 
 export default function DepartmentInfo() {
-    const { auth, url } = useAuth();
+    const { auth, token, url } = useAuth();
     const { department } = useParams();
-
     const navigate = useNavigate();
 
     const [value, setValue] = useState(0);
@@ -22,19 +21,22 @@ export default function DepartmentInfo() {
     const [courses, setCourses] = useState([]);
     const [sendcourse, setSendCourse] = useState("");
     const [sendcode, setSendCode] = useState("");
-    const [message, setMessage] = useState("")
+    const [message, setMessage] = useState("");
 
     useEffect(() => {
         const fetchCourses = async () => {
             try {
-                const response = await axios.get(`${url}?department=${encodeURIComponent(department)}`);
+                const response = await axios.get(`${url}/courses`, {
+                    params: { department: department },
+                    headers: { Authorization: `Bearer ${token}` }
+                });
                 setCourses(response.data);
             } catch (error) {
                 console.error('Error fetching courses:', error);
             }
         };
         fetchCourses();
-    }, [department]);
+    }, [department, url, token]);
 
     const handleChange = (event, newValue) => {
         setValue(newValue);
@@ -54,18 +56,17 @@ export default function DepartmentInfo() {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        console.log('Course Code:', sendcode);
-        console.log('Course Name:', sendcourse);
-
         const send = sendcourse + sendcode;
 
         try {
-            const response = await axios.post(`${url}/addFac`, { course: send });
+            const response = await axios.post(`${url}/CourseReq`,
+                { department: department, course: send }
+            );
             setMessage(response.data.message);
             setSendCourse("");
             setSendCode("");
         } catch (error) {
-            console.error('Error adding department:', error);
+            console.error('Error adding course:', error);
         }
     };
 
@@ -73,16 +74,15 @@ export default function DepartmentInfo() {
         <div style={styles.departmentInfoContainer}>
             <Logout />
             <Tabs value={value} onChange={handleChange} aria-label="basic tabs example" style={styles.tabs}>
-                <Tab label="Q&A" style={styles.tab} />
                 <Tab label="Courses" style={styles.tab} />
+                <Tab label="Q&A" style={styles.tab} />
             </Tabs>
-            {value === 1 && (
+            {value === 0 && (
                 <div style={styles.coursesContainer}>
-                    <h1>{department}</h1>
-                    <h3>Number of courses: {courses.length}</h3>
-                    <br />
-                    <h1>All Courses</h1>
-                    <input
+                    <Typography variant="h2" style={styles.departmentTitle}>{department}</Typography>
+                    <Typography variant="h4" style={styles.courseCount}>Number of courses: {courses.length}</Typography>
+                    <Typography variant="h3" style={styles.sectionTitle}>All Courses</Typography>
+                    <TextField
                         className="search-input"
                         placeholder="Find your course"
                         value={searchInput}
@@ -98,44 +98,43 @@ export default function DepartmentInfo() {
                             ))}
                         </CardContent>
                     </Card>
-                    <br />
-                    <br />
-                    <h3>Any Course Missing?</h3>
-                    <form className="form" onSubmit={handleSubmit} style={{ marginTop: '20px' }}>
+                    <div style={styles.spacer} /> {/* Spacer for adding space between sections */}
+                    <Typography variant="h3" style={styles.sectionTitle}>Any Course Missing?</Typography>
+                    <form className="form" onSubmit={handleSubmit} style={styles.form}>
                         <Grid container spacing={2} alignItems="center">
                             <Grid item xs={6}>
                                 <TextField
                                     className="form-input"
-                                    name="courseName" // Change to courseName
+                                    name="courseName"
                                     variant="outlined"
                                     fullWidth
-                                    placeholder='Course name'
-                                    value={sendcourse} // Bind value to sendcourse state
-                                    onChange={(e) => setSendCourse(e.target.value)} // Update sendcourse state
-                                    style={{ backgroundColor: 'white' }}
+                                    placeholder='Course Code'
+                                    value={sendcourse}
+                                    onChange={(e) => setSendCourse(e.target.value)}
+                                    style={styles.formInput}
                                 />
                             </Grid>
                             <Grid item xs={6}>
                                 <TextField
                                     className="form-input"
-                                    name="courseCode" // Change to courseCode
+                                    name="courseCode"
                                     variant="outlined"
                                     fullWidth
-                                    placeholder='Course Code'
-                                    value={sendcode} // Bind value to sendcode state
-                                    onChange={(e) => setSendCode(e.target.value)} // Update sendcode state
-                                    style={{ backgroundColor: 'white' }}
+                                    placeholder='Course Number'
+                                    value={sendcode}
+                                    onChange={(e) => setSendCode(e.target.value)}
+                                    style={styles.formInput}
                                 />
                             </Grid>
                             <Grid item xs={4}>
-                                <Button type="submit" variant="contained" color="primary">Submit</Button>
+                                <Button type="submit" variant="contained" color="primary" style={styles.submitBtn}>Submit</Button>
                             </Grid>
                         </Grid>
                     </form>
                     <Typography style={styles.message}>{message}</Typography>
                 </div>
             )}
-            {value === 0 && <DiscussionBoard />}
+            {value === 1 && <DiscussionBoard />}
         </div>
     );
 }
@@ -147,19 +146,45 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '20px',
+        backgroundColor: '#000',
+        color: '#fff',
+        minHeight: '100vh',
+        position: 'relative',
     },
-    logoutBtn: {
+    title: {
         marginBottom: '20px',
+        textAlign: 'center',
+        color: '#20ebe4',
     },
     tabs: {
         width: '100%',
+        marginBottom: '20px',
+        zIndex: 1, // Ensure tabs are on top
     },
     tab: {
         fontWeight: 'bold',
+        color: '#fff',
     },
     coursesContainer: {
         width: '100%',
+        maxWidth: '1200px',
         marginTop: '20px',
+        padding: '20px',
+        backgroundColor: '#1f1f1f',
+        borderRadius: '8px',
+        boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)',
+    },
+    departmentTitle: {
+        textAlign: 'center',
+        marginBottom: '10px',
+    },
+    courseCount: {
+        textAlign: 'center',
+        marginBottom: '20px',
+    },
+    sectionTitle: {
+        textAlign: 'center',
+        marginBottom: '20px',
     },
     searchInput: {
         width: '100%',
@@ -167,38 +192,53 @@ const styles = {
         marginBottom: '10px',
         border: '1px solid #ccc',
         borderRadius: '4px',
+        backgroundColor: '#fff',
+        color: '#000',
     },
     card: {
-        width: '80%',
-        marginTop: '20px',
+        width: '100%',
+        maxWidth: '800px',
+        margin: '0 auto',
         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
     },
     courseItem: {
         cursor: 'pointer',
         padding: '10px',
         margin: '5px',
-        backgroundColor: '#f0f0f0',
+        backgroundColor: '#333',
         borderRadius: '5px',
         transition: 'background-color 0.3s ease',
+        color: '#fff',
+        '&:hover': {
+            backgroundColor: '#555',
+        }
     },
     form: {
         marginTop: '20px',
+        padding: '10px',
+        backgroundColor: '#333',
+        borderRadius: '8px',
     },
     formInput: {
-        marginBottom: '10px',
+        backgroundColor: '#fff',
+        color: '#000',
     },
     submitBtn: {
         backgroundColor: '#4caf50',
         color: 'white',
         padding: '10px 20px',
-        border: 'none',
         borderRadius: '5px',
         cursor: 'pointer',
         fontSize: '16px',
+        textTransform: 'uppercase',
     },
     message: {
         marginTop: '20px',
-        color: 'green', 
+        color: 'green',
         fontWeight: 'bold',
-    }
+        textAlign: 'center',
+    },
+    spacer: {
+        marginBottom: '30px', // Space between sections
+    },
 };

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import { Card, Button, TextField, List, ListItem, ListItemText, CircularProgress } from '@mui/material';
 import * as signalR from '@microsoft/signalr';
 import { useAuth } from "./context";
 
 export default function DiscussionBoard() {
-    const { url } = useAuth();
+    const { url, token } = useAuth();
     const { department } = useParams();
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
@@ -14,56 +15,70 @@ export default function DiscussionBoard() {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        const newConnection = new signalR.HubConnectionBuilder()
-            .withUrl(`${url}/chatHub`)
-            .withAutomaticReconnect()
-            .build();
+        const fetchComments = async () => {
+            try {
+                const response = await axios.get(`${url}/Comments`, {
+                    params: {
+                        department: department
+                    },
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setComments(response.data);
+            } catch (err) {
+                console.error('Error fetching comments:', err);
+                setError('Failed to load comments.');
+            }
+        };
 
-        newConnection.on('ReceiveComment', (comment) => {
-            setComments(prevComments => [...prevComments, comment]);
-        });
+        fetchComments();
+    }, [department]);
 
-        newConnection.on('LoadChatHistory', (history) => {
-            setComments(history);
-            setLoading(false); // Stop loading once history is loaded
-        });
+    useEffect(() => {
+        const joinChatRoom = async (department) => {
+            if (connection) return;
 
-        newConnection.on('ReceiveError', (error) => {
-            setError(error);
-            console.error('Error:', error);
-        });
+            try {
+                const conn = new signalR.HubConnectionBuilder()
+                    .withUrl(`${url}/chat`)
+                    .configureLogging(signalR.LogLevel.Information)
+                    .build();
 
-        newConnection.start()
-            .then(() => {
-                setConnection(newConnection);
-                newConnection.invoke('JoinRoom', department)
-                    .catch(err => {
-                        console.error('Error joining room:', err);
-                        setError('Failed to join room');
-                    });
-            })
-            .catch(err => {
-                console.error('Connection error:', err);
-                setError('Connection to server failed');
-            });
+                conn.on("ReceiveMessage", (comment) => {
+                    setComments(prevComments => [...prevComments, comment]);
+                });
+
+                await conn.start();
+                await conn.invoke("JoinSpecificGroup", department);
+
+                setConnection(conn);
+                setLoading(false);
+            } catch (err) {
+                console.error('Error connecting to chat room:', err);
+                setError('Failed to connect to the chat room.');
+                setLoading(false);
+            }
+        };
+
+        joinChatRoom(department);
 
         return () => {
             if (connection) {
                 connection.stop();
             }
         };
-    }, [department, url]);
+    }, [department, connection]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (newComment.trim() === '') return;
+
+        if (!newComment.trim()) return;
 
         try {
-            await connection.invoke('SendComment', department, newComment);
+            await connection.invoke("SendMessage", department, newComment);
             setNewComment('');
-        } catch (error) {
-            console.error('Failed to send comment:', error);
-            setError('Failed to send comment');
+        } catch (err) {
+            console.error('Error sending message:', err);
+            setError('Failed to send message.');
         }
     };
 
@@ -71,7 +86,7 @@ export default function DiscussionBoard() {
         <div style={styles.discussionBoardContainer}>
             <h2 style={styles.departmentHeading}>{department} Discussion Board</h2>
             {loading ? (
-                <CircularProgress />
+                <CircularProgress style={styles.circularProgress} />
             ) : error ? (
                 <div style={styles.error}>{error}</div>
             ) : (
@@ -79,7 +94,12 @@ export default function DiscussionBoard() {
                     {comments.map((comment, index) => (
                         <ListItem key={index} style={styles.commentListItem}>
                             <Card style={styles.commentCard}>
-                                <ListItemText primary={comment} />
+                                <ListItemText
+                                    primary={comment.message}
+                                    secondary={new Date(comment.timestamp).toLocaleString()}
+                                    primaryTypographyProps={{ style: styles.commentText }}
+                                    secondaryTypographyProps={{ style: styles.commentTimestamp }}
+                                />
                             </Card>
                         </ListItem>
                     ))}
@@ -103,40 +123,79 @@ const styles = {
     discussionBoardContainer: {
         marginTop: '20px',
         padding: '20px',
-        backgroundColor: '#f9f9f9',
-        borderRadius: '10px',
-        boxShadow: '0px 0px 10px rgba(0, 0, 0, 0.1)',
+        backgroundColor: '#1f1f1f',
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+        maxWidth: '1200px',
+        marginLeft: 'auto',
+        marginRight: 'auto',
     },
     departmentHeading: {
-        marginBottom: '20px',
-        fontSize: '24px',
+        marginBottom: '24px',
+        fontSize: '28px',
+        fontWeight: '600',
+        color: '#20ebe4',
+        textAlign: 'center',
     },
     commentsList: {
         width: '100%',
+        maxHeight: '400px',
+        overflowY: 'auto',
+        padding: '0',
+        marginBottom: '20px',
     },
     commentListItem: {
-        marginBottom: '10px',
+        marginBottom: '15px',
     },
     commentCard: {
-        padding: '15px',
-        backgroundColor: '#ffffff',
+        padding: '16px',
+        backgroundColor: '#2c2c2c', // Slightly lighter dark background for better contrast
         borderRadius: '8px',
-        boxShadow: '0px 0px 8px rgba(0, 0, 0, 0.1)',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+        transition: 'transform 0.2s ease-in-out',
+        '&:hover': {
+            transform: 'scale(1.02)',
+        },
+    },
+    commentText: {
+        color: '#e0e0e0', // Light gray for better contrast
+    },
+    commentTimestamp: {
+        color: '#a0a0a0', // Gray for timestamp
     },
     commentForm: {
         display: 'flex',
-        alignItems: 'center',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        marginTop: '20px',
     },
     commentInput: {
-        width: 'calc(100% - 100px)',
-        marginRight: '10px',
-        backgroundColor: 'white'
+        marginBottom: '10px',
+        backgroundColor: '#fff',
+        borderRadius: '8px',
+        padding: '10px',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        fontSize: '16px',
     },
     postButton: {
-        height: '56px',
+        alignSelf: 'flex-end',
+        width: '150px',
+        height: '48px',
+        backgroundColor: '#4caf50',
+        color: '#fff',
+        fontWeight: '600',
+        textTransform: 'none',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+        '&:hover': {
+            backgroundColor: '#388e3c',
+        },
     },
     error: {
-        color: 'red',
+        color: '#ff4d4d',
         marginBottom: '10px',
+        textAlign: 'center',
     },
+    circularProgress: {
+        color: '#20ebe4',
+    }
 };

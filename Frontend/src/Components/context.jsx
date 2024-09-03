@@ -1,30 +1,39 @@
 import { useContext, createContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+
 const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
-    const [token, setToken] = useState(localStorage.getItem("site") || "");
+    const [token, setToken] = useState(localStorage.getItem("accessToken") || "");
     const navigate = useNavigate();
-
-
-     const url = "http://daldocbs-env-1.eba-i45vxxpr.us-east-1.elasticbeanstalk.com";
+    const url = "http://localhost:5199";
 
     const loginAction = async (data) => {
         try {
-            const res = await axios.post(`${url}/auth/login`, data);
-            setToken(res.data.token); // Assuming token is in res.data.token
-            localStorage.setItem("site", res.data.token);
+            const res = await axios.post(`${url}/login?useCookies=false&useSessionCookies=false`, data);
+            const { tokenType, accessToken, refreshToken, expiresIn } = res.data;
+
+            // Store tokens in local storage
+            localStorage.setItem("accessToken", accessToken);
+            localStorage.setItem("refreshToken", refreshToken);
+            localStorage.setItem("tokenType", tokenType);
+            localStorage.setItem("tokenExpiration", Date.now() + expiresIn * 1000);
+
+            setToken(accessToken);
             navigate("/homepage");
-            return;
+            return res.data; 
         } catch (err) {
-            console.error(err);
+            console.error("Login error:", err.response?.data?.message || err.message);
+            throw err; // Rethrow error to be handled in the component
         }
     };
 
     const logOut = () => {
         setToken("");
-        localStorage.removeItem("site");
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("tokenExpiration");
         navigate("/");
     };
 
@@ -33,7 +42,6 @@ const AuthProvider = ({ children }) => {
             {children}
         </AuthContext.Provider>
     );
-
 };
 
 export default AuthProvider;
@@ -41,6 +49,3 @@ export default AuthProvider;
 export const useAuth = () => {
     return useContext(AuthContext);
 };
-
-
-

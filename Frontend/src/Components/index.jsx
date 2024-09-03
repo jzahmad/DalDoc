@@ -10,7 +10,7 @@ import { Button, TextField, Grid, Box } from '@mui/material';
 import Logout from './logout';
 
 export default function Index() {
-    const { url } = useAuth();
+    const { url, token } = useAuth();
     const navigate = useNavigate();
     const [departments, setDepartments] = useState([]);
     const [selectedDepartment, setSelectedDepartment] = useState(null);
@@ -19,14 +19,16 @@ export default function Index() {
     useEffect(() => {
         const fetchDepartments = async () => {
             try {
-                const response = await axios.get(`${url}/departments`);
+                const response = await axios.get(`${url}/departments`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
                 setDepartments(response.data);
             } catch (error) {
                 console.error('Error fetching departments:', error);
             }
         };
         fetchDepartments();
-    }, []);
+    }, [url, token]);
 
     function sortDepartments(alphabet) {
         return departments.filter(department => department.name.charAt(0).toUpperCase() === alphabet);
@@ -43,7 +45,13 @@ export default function Index() {
         event.target.reset();
 
         try {
-            const response = await axios.post(`${url}/addDepartment`, { department: newDepartment });
+            const response = await axios.post(`${url}/DepartmentReq`,
+                { 
+                    department: newDepartment 
+                },
+                {
+                    // headers: { Authorization: `Bearer ${token}` }
+                });
             setMessage(response.data.message);
         } catch (error) {
             console.error('Error adding department:', error);
@@ -51,31 +59,66 @@ export default function Index() {
     };
 
     const handleTabChange = (alphabet) => {
-        // Do something when a tab is selected, if needed
+        // Handle tab change if needed
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+        <div style={{ 
+            backgroundColor: 'black', 
+            color: 'white', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            minHeight: '100vh', 
+            padding: '20px' 
+        }}>
             <Logout />
-            <Typography variant="h1" style={{ marginBottom: '10px', textAlign: 'center' }}>Welcome to DalDoc</Typography>
-            <Typography variant="h4" style={{ marginBottom: '20px', textAlign: 'center' }}>Find the study resources you need for all your classes. DalDoc has study documents, questions and answers to help you study and learn.</Typography>
-            <br />
-            <br />
-            <br />
-            <br />
-            <Typography variant="h2" style={{ marginBottom: '20px', textAlign: 'center' }}>Find Your Department</Typography>
-            <Card style={{ width: '80%', marginBottom: '20px' }}>
+            <Typography variant="h1" style={{ 
+                marginBottom: '10px', 
+                textAlign: 'center',
+                fontSize: '2.5rem'
+            }}>Welcome to DalDoc</Typography>
+            <Typography variant="h4" style={{ 
+                marginBottom: '20px', 
+                textAlign: 'center',
+                fontSize: '1.5rem'
+            }}>Find the study resources you need for all your classes. DalDoc has study documents, questions, and answers to help you study and learn.</Typography>
+            <Typography variant="h2" style={{ 
+                marginBottom: '20px', 
+                textAlign: 'center',
+                fontSize: '2rem'
+            }}>Find Your Department</Typography>
+            <Card style={{ 
+                width: '80%', 
+                marginBottom: '20px',
+                backgroundColor: '#333',
+                color: 'white'
+            }}>
                 <CardContent>
                     <Tabs aria-label="Tabs with underline" onChange={handleTabChange}>
                         {[...Array(26)].map((_, index) => (
                             <Tabs.Item key={index} title={String.fromCharCode(65 + index)} type="button" className="btn btn-primary">
-                                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around' }}>
+                                <div style={{ 
+                                    display: 'flex', 
+                                    flexWrap: 'wrap', 
+                                    justifyContent: 'space-around' 
+                                }}>
                                     {sortDepartments(String.fromCharCode(65 + index)).map((department, deptIndex) => (
                                         <Box
                                             key={deptIndex}
                                             className={`department-item ${selectedDepartment === department.name ? 'selected' : ''}`}
                                             onClick={() => goto(department.name)}
-                                            style={{ cursor: 'pointer', padding: '10px', margin: '5px', backgroundColor: '#f0f0f0', borderRadius: '5px', transition: 'background-color 0.3s ease' }}
+                                            style={{ 
+                                                cursor: 'pointer', 
+                                                padding: '10px', 
+                                                margin: '5px', 
+                                                backgroundColor: '#444', 
+                                                borderRadius: '5px', 
+                                                transition: 'background-color 0.3s ease',
+                                                width: '120px',
+                                                textAlign: 'center'
+                                            }}
                                         >
                                             {department.name}
                                         </Box>
@@ -86,12 +129,11 @@ export default function Index() {
                     </Tabs>
                 </CardContent>
             </Card>
-            <br />
-            <br />
-            <br />
-            <br />
-            <br />
-            <Typography variant="h3" style={{ marginBottom: '20px', textAlign: 'center' }}>Any department Missing?</Typography>
+            <Typography variant="h3" style={{ 
+                marginBottom: '20px', 
+                textAlign: 'center',
+                fontSize: '1.5rem'
+            }}>Any department Missing?</Typography>
             <form className="form" onSubmit={handleSubmit} style={{ marginTop: '20px' }}>
                 <Grid container spacing={2} alignItems="center">
                     <Grid item xs={8}>
@@ -101,7 +143,10 @@ export default function Index() {
                             variant="outlined"
                             fullWidth
                             placeholder='Addition of a Department'
-                            style={{ backgroundColor: 'white' }} // Add background color style
+                            style={{ 
+                                backgroundColor: 'white', 
+                                color: 'black'
+                            }} // Add background color style
                         />
                     </Grid>
                     <Grid item xs={4}>
@@ -109,8 +154,12 @@ export default function Index() {
                     </Grid>
                 </Grid>
             </form>
-            <br />
-            <Typography style={{ marginTop: '20px', color: 'green', fontWeight: 'bold' }}>{message}</Typography>
+            <Typography style={{ 
+                marginTop: '20px', 
+                color: 'green', 
+                fontWeight: 'bold', 
+                textAlign: 'center'
+            }}>{message}</Typography>
         </div>
     );
 }
